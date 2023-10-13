@@ -9,8 +9,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 @Slf4j
@@ -37,8 +35,8 @@ public class FeedService {
         feedRepository.addPosts(friendId, postId);
     }
 
-    public void clearCache(List<String> friends) {
-        friends.forEach(Objects.requireNonNull(cacheManager.getCache("feed"))::evictIfPresent);
+    public void clearCache(String friend) {
+        cacheManager.getCache("feed").evictIfPresent(friend);
     }
 
 }

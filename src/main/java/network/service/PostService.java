@@ -3,6 +3,7 @@ package network.service;
 import lombok.extern.slf4j.Slf4j;
 import network.dto.PostCreateBodyModel;
 import network.dto.PostUpdateBodyModel;
+import network.dto.PostWSModel;
 import network.entity.Post;
 import network.repository.PostRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -22,14 +23,15 @@ public class PostService {
     private final PostRepository postRepository;
     private final FeedService feedService;
     private final FriendService friendService;
+    private final KafkaService kafkaService;
 
-    public PostService(PostRepository postRepository, FeedService feedService, FriendService friendService) {
+    public PostService(PostRepository postRepository, FeedService feedService, FriendService friendService, KafkaService kafkaService) {
         this.postRepository = postRepository;
         this.feedService = feedService;
         this.friendService = friendService;
+        this.kafkaService = kafkaService;
     }
 
-    @Cacheable(value = "posts")
     @Transactional
     public Post create(String userId, PostCreateBodyModel body) {
         if (Objects.isNull(body.getText()) || body.getText().isBlank())
@@ -41,7 +43,10 @@ public class PostService {
                 .createDatetime(LocalDateTime.now())
                 .build());
         feedService.add(userId, post.getId());
-        feedService.clearCache(friendService.getFriends(userId));
+        friendService.getFriends(userId).forEach(friendId -> {
+            feedService.clearCache(friendId);
+            kafkaService.sendMessage(friendId, new PostWSModel(post));
+        });
         return post;
     }
 
@@ -59,7 +64,7 @@ public class PostService {
         post = postRepository.save(post);
 
         feedService.delete(post.getId());
-        feedService.clearCache(friendService.getFriends(userId));
+        friendService.getFriends(userId).forEach(feedService::clearCache);
         return post;
     }
 

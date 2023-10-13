@@ -31,7 +31,7 @@ public class FriendService {
                 .friendId(friendId)
                 .createDatetime(LocalDateTime.now())
                 .build());
-        feedService.clearCache(List.of(userId));
+        feedService.clearCache(userId);
     }
 
     public void deleteFriend(String userId, String friendId) {
@@ -42,7 +42,7 @@ public class FriendService {
         var friend = friendOpt.get();
         friend.setDeleteDatetime(LocalDateTime.now());
         friendRepository.save(friend);
-        feedService.clearCache(List.of(userId));
+        feedService.clearCache(userId);
     }
 
     public List<String> getFriends(String userId) {
